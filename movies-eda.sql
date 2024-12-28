@@ -1,0 +1,13 @@
+select * from movies;
+select distinct industry from movies;
+select * from movies;
+select * from movies where release_year=2022;
+select * from movies where title like '%captain%';
+select count(*) from movies;
+select * from movies where imdb_rating between 8 and 9;
+select * from movies order by language_id desc;
+select title,release_year from movies;
+select * from movies where title like '%avenger%';
+select release_year from movies where title='the godfather';
+select * from movies;
+select distinct studio from movies where industry='bollywood';
