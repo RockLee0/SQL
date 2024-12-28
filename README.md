@@ -185,3 +185,187 @@ SELECT MemberID, COUNT(BookID) AS BooksBorrowed FROM BorrowedBooks GROUP BY Memb
 - Integration with ML pipelines using tools like TensorFlow or PyTorch.
 
 
+---
+
+## **Future Topics for AI Engineers**
+
+### **1. Advanced Query Optimization Techniques**
+
+As datasets grow, query performance becomes crucial. Optimization ensures queries execute faster and more efficiently.
+
+#### **a. Using `EXPLAIN` and `ANALYZE`**
+- These commands provide insights into query execution plans, helping you identify performance bottlenecks.
+  
+```sql
+EXPLAIN SELECT * FROM Books WHERE Author = 'J.K. Rowling';
+```
+
+- **Output Interpretation**:
+  - **Index Usage**: Ensures indexes are being used.
+  - **Cost Estimates**: Lower costs indicate more efficient queries.
+
+#### **b. Avoid SELECT \*** 
+Fetching unnecessary columns increases memory usage.
+```sql
+SELECT Title, Author FROM Books; -- Fetch only required columns
+```
+
+#### **c. Optimize Joins**
+- Use indexes on columns involved in joins.
+```sql
+CREATE INDEX idx_memberID ON BorrowedBooks (MemberID);
+```
+- Filter data early:
+```sql
+SELECT Members.Name, Books.Title
+FROM BorrowedBooks
+INNER JOIN Members ON BorrowedBooks.MemberID = Members.MemberID
+WHERE BorrowedBooks.Date > '2023-01-01';
+```
+
+#### **d. Partitioning**
+Divide large tables into smaller, manageable segments (e.g., by date).
+```sql
+CREATE TABLE BorrowedBooks_2023 PARTITION OF BorrowedBooks FOR VALUES FROM ('2023-01-01') TO ('2024-01-01');
+```
+
+---
+
+### **2. Big Data Handling with SQL-Based Tools**
+
+When data grows beyond traditional SQL's capacity, distributed systems like Hive and Spark SQL come into play.
+
+#### **a. Apache Hive**
+- SQL-like querying on distributed data stored in Hadoop.
+  
+**Example**: Query a large dataset of transactions.
+```sql
+CREATE EXTERNAL TABLE transactions (
+    transaction_id STRING,
+    amount FLOAT,
+    date STRING
+) 
+STORED AS PARQUET;
+
+SELECT date, SUM(amount) AS total_sales FROM transactions GROUP BY date;
+```
+
+#### **b. Apache Spark SQL**
+- A fast, distributed query engine for big data.
+  
+**Python + Spark SQL Example**:
+```python
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("BigDataSQL").getOrCreate()
+
+# Load data into a DataFrame
+df = spark.read.csv("transactions.csv", header=True)
+
+# Register DataFrame as a SQL temporary view
+df.createOrReplaceTempView("transactions")
+
+# Run SQL query
+spark.sql("SELECT date, SUM(amount) AS total_sales FROM transactions GROUP BY date").show()
+```
+
+#### **c. SQL-on-NoSQL**
+Use SQL interfaces for NoSQL databases (e.g., Amazon Athena for S3).
+```sql
+SELECT * FROM s3://mybucket/transactions WHERE amount > 100;
+```
+
+---
+
+### **3. Integration with ML Pipelines**
+
+SQL is often used for feature engineering and preprocessing in ML pipelines.
+
+#### **a. Feature Extraction with SQL**
+Extract features directly in SQL for use in ML models.
+```sql
+SELECT 
+    MemberID,
+    COUNT(BookID) AS BorrowedBooks,
+    AVG(DATEDIFF(ReturnDate, BorrowDate)) AS AvgBorrowDuration
+FROM BorrowedBooks
+GROUP BY MemberID;
+```
+
+#### **b. Using SQL with TensorFlow**
+- Combine SQL data preprocessing with ML training.
+
+**Example**: Load SQL data into a TensorFlow pipeline.
+```python
+import tensorflow as tf
+import sqlite3
+import pandas as pd
+
+# Fetch data from SQL
+connection = sqlite3.connect("library.db")
+query = "SELECT MemberID, BorrowedBooks, AvgBorrowDuration FROM BorrowedFeatures;"
+df = pd.read_sql_query(query, connection)
+
+# Convert to TensorFlow dataset
+dataset = tf.data.Dataset.from_tensor_slices((df[['BorrowedBooks', 'AvgBorrowDuration']].values, df['MemberID'].values))
+
+# Build and train a model
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(10, activation='relu'),
+    tf.keras.layers.Dense(1)
+])
+
+model.compile(optimizer='adam', loss='mse')
+model.fit(dataset.batch(32), epochs=10)
+```
+
+#### **c. PyTorch Integration with SQL**
+- Use SQL for feature preprocessing, then pass to PyTorch.
+
+**Example**:
+```python
+import sqlite3
+import torch
+import pandas as pd
+
+# Fetch data
+connection = sqlite3.connect("library.db")
+query = "SELECT BorrowedBooks, AvgBorrowDuration FROM BorrowedFeatures;"
+data = pd.read_sql_query(query, connection)
+
+# Convert to PyTorch tensors
+features = torch.tensor(data.values, dtype=torch.float32)
+
+# Define a simple PyTorch model
+model = torch.nn.Sequential(
+    torch.nn.Linear(features.shape[1], 10),
+    torch.nn.ReLU(),
+    torch.nn.Linear(10, 1)
+)
+
+# Forward pass
+output = model(features)
+print(output)
+```
+
+---
+
+### **4. Advanced Use Cases**
+
+#### **a. Building a Recommendation System**
+SQL can preprocess data for collaborative filtering or content-based filtering.
+```sql
+SELECT MemberID, BookID, COUNT(*) AS BorrowCount
+FROM BorrowedBooks
+GROUP BY MemberID, BookID;
+```
+
+#### **b. Time-Series Analysis**
+Use SQL to generate lagged features for time-series models.
+```sql
+SELECT 
+    BookID, 
+    BorrowDate, 
+    LAG(BorrowDate) OVER (PARTITION BY BookID ORDER BY BorrowDate) AS PreviousBorrowDate
+FROM BorrowedBooks;
+```
